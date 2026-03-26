@@ -1,0 +1,65 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-travel-advisor
+  namespace: ai-travel-advisor
+spec:
+  selector:
+    matchLabels:
+      name: ai-travel-advisor
+  template:
+    metadata:
+      labels:
+        name: ai-travel-advisor
+    spec:
+      containers:
+        - name: ai-travel-advisor
+          image: dtdemos/ai-travel-advisor:v1.0.63
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+          env:
+            - name: OLLAMA_ENDPOINT
+              value: "http://10.8.56.127/enterpriseai"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-travel-advisor-secrets
+                  key: OPENAI_API_KEY
+            - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+              value: "delta"
+            - name: AI_MODEL
+              value: "meta-llama32"
+            - name: AI_EMBEDDING_MODEL
+              value: "meta-llama32"
+            - name: OTEL_ENDPOINT
+              value: "http://10.108.50.222:4318"
+            - name: DT_OTLP_API_ENDPOINT
+              value: "https://daj66378.live.dynatrace.com/api/v2/otlp"
+            - name: DT_API_TOKEN
+              value: "DT_API_TOKEN_PLACEHOLDER"
+          imagePullPolicy: IfNotPresent
+      volumes:
+        - name: secrets
+          projected:
+            sources:
+              - secret:
+                  name: dynatrace
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-travel-advisor
+  namespace: ai-travel-advisor
+spec:
+  type: LoadBalancer 
+  selector:
+    name: ai-travel-advisor
+  ports:
+    - port: 80
+      name: http
+      targetPort: 8082
+      protocol: TCP
